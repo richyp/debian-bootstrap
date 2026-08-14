@@ -50,6 +50,7 @@ sudo apt install -y gh
 
 info "Authenticating with GitHub"
 gh auth status >/dev/null 2>&1 || gh auth login
+gh auth refresh -h github.com -s admin:public_key
 
 if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
   info "Generating an SSH key"
