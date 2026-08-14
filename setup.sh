@@ -31,6 +31,9 @@ if grep -qE '^\s*(deb|URIs).*trixie' /etc/apt/sources.list /etc/apt/sources.list
     sudo sed -i 's/trixie/testing/g' /etc/apt/sources.list
     # trixie-updates has no testing equivalent.
     sudo sed -i '/testing-updates/d' /etc/apt/sources.list
+    # Steam is in non-free; firmware and some drivers in non-free-firmware.
+    sudo sed -i -E 's/^(deb .*testing.*[[:space:]]main)$/\1 contrib non-free non-free-firmware/' \
+      /etc/apt/sources.list
     sudo apt update
     sudo apt full-upgrade -y
     info "Switched to testing. A reboot is advisable before continuing."
