@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Bootstrap a fresh Debian testing install.
 #
-#   curl -fsSL https://raw.githubusercontent.com/richyp/bootstrap/main/bootstrap.sh | bash
+#   wget -qO setup.sh https://raw.githubusercontent.com/richyp/debian-bootstrap/main/setup.sh
+#   bash setup.sh
+#
+# Download, do not pipe. Piping makes stdin the script rather than your
+# terminal, which breaks every read prompt and the gh auth login flow.
 #
 # Installs the GitHub CLI (absent from Debian testing since Dec 2025),
 # authenticates, generates and registers an SSH key, then clones the
@@ -19,7 +23,13 @@ sudo apt install -y curl git gnupg
 # The package lists in dotfiles assume testing. On stable several are
 # missing, and Plasma is a release behind.
 
-echo "\$nrconf{restart} = 'a';" | sudo tee /etc/needrestart/conf.d/50-autorestart.conf
+# needrestart is not on a truly minimal install, and tee into a missing
+# directory would abort the script here. Writing the file regardless is
+# inert until needrestart appears -- which it may, during the upgrade
+# below -- and it is what stops debian-setup.sh being interrupted later.
+sudo mkdir -p /etc/needrestart/conf.d
+echo "\$nrconf{restart} = 'a';" \
+  | sudo tee /etc/needrestart/conf.d/50-autorestart.conf > /dev/null
 
 if grep -qE '^\s*(deb|URIs).*trixie' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
   info "This machine is on stable (trixie)"
@@ -28,14 +38,12 @@ if grep -qE '^\s*(deb|URIs).*trixie' /etc/apt/sources.list /etc/apt/sources.list
   echo
   read -rp "Switch to testing? [y/N] " reply
 
-  if [ "$reply" = "y" ]; then
+  if [[ "$reply" =~ ^[Yy]$ ]]; then
     sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
     sudo sed -i 's/trixie/testing/g' /etc/apt/sources.list
     # trixie-updates has no testing equivalent.
     sudo sed -i '/testing-updates/d' /etc/apt/sources.list
-    # Steam is in non-free; firmware and some drivers in non-free-firmware.
-    sudo sed -i -E 's/^(deb .*testing.*[[:space:]]main)$/\1 contrib non-free non-free-firmware/' \
-      /etc/apt/sources.list
+    # Components are added by the block below, which runs either way.
     sudo apt update
     sudo apt full-upgrade -y
   fi
@@ -69,6 +77,16 @@ if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
     -f "$HOME/.ssh/id_ed25519"
   gh ssh-key add "$HOME/.ssh/id_ed25519.pub" \
     --title "$(hostname)-$(date +%Y-%m)"
+fi
+
+# On a fresh machine known_hosts is empty, and the clone below would stop
+# to ask about GitHub's host key. This is trust-on-first-use either way;
+# check the fingerprint against GitHub's published one if that matters.
+if ! ssh-keygen -F github.com >/dev/null 2>&1; then
+  info "Adding GitHub to known_hosts"
+  mkdir -p "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+  ssh-keyscan -t ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
 fi
 
 if [ ! -d "$HOME/dotfiles" ]; then
