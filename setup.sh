@@ -19,6 +19,8 @@ sudo apt install -y curl git gnupg
 # The package lists in dotfiles assume testing. On stable several are
 # missing, and Plasma is a release behind.
 
+echo "\$nrconf{restart} = 'a';" | sudo tee /etc/needrestart/conf.d/50-autorestart.conf
+
 if grep -qE '^\s*(deb|URIs).*trixie' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
   info "This machine is on stable (trixie)"
   echo "    Switching to testing rewrites your apt sources and pulls a"
@@ -36,8 +38,6 @@ if grep -qE '^\s*(deb|URIs).*trixie' /etc/apt/sources.list /etc/apt/sources.list
       /etc/apt/sources.list
     sudo apt update
     sudo apt full-upgrade -y
-    info "Switched to testing. A reboot is advisable before continuing."
-    read -rp "Press enter to continue... "
   fi
 fi
 
