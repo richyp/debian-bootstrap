@@ -41,12 +41,14 @@ if grep -qE '^\s*(deb|URIs).*trixie' /etc/apt/sources.list /etc/apt/sources.list
   fi
 fi
 
-if ! grep -q "non-free" /etc/apt/sources.list; then
+# Steam is in non-free; some drivers in contrib. non-free-firmware is
+# already enabled by the installer.
+if ! grep -qE '^deb .*[[:space:]]non-free([[:space:]]|$)' /etc/apt/sources.list; then
   info "Enabling contrib and non-free"
-  sudo sed -i -E 's/^(deb .*[[:space:]]main)$/\1 contrib non-free non-free-firmware/' /etc/apt/sources.list
+  sudo sed -i -E 's/^(deb(-src)? .*[[:space:]])main([[:space:]]|$)/\1main contrib non-free\3/' \
+    /etc/apt/sources.list
   sudo apt update
 fi
-
 info "Adding the GitHub CLI repository"
 curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   | sudo tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null
