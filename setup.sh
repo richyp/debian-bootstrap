@@ -68,7 +68,14 @@ sudo apt install -y gh
 
 info "Authenticating with GitHub"
 if ! gh auth status >/dev/null 2>&1; then
-  gh auth login -h github.com -s admin:public_key
+  # --skip-ssh-key stops gh generating and uploading a key of its own.
+  # Left to itself it titles every one "GitHub CLI", which is no use
+  # once the MacBook and the servers each have one. The block below
+  # names the key for the host and the month instead.
+  #
+  # admin:public_key is requested here so that upload needs no second
+  # device code.
+  gh auth login -h github.com -p ssh --skip-ssh-key -s admin:public_key
 fi
 
 if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
@@ -95,4 +102,7 @@ if [ ! -d "$HOME/dotfiles" ]; then
 fi
 
 info "Running the setup script"
-exec "$HOME/dotfiles/packages/debian-setup.sh"
+# Invoked through bash rather than executed directly: a fresh clone that
+# lost its executable bit would otherwise fail here with "Permission
+# denied" at the very last step, after everything else has succeeded.
+exec bash "$HOME/dotfiles/packages/debian-setup.sh"
